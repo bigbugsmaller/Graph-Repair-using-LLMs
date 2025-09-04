@@ -3,7 +3,6 @@
 * Aadi
 * Prince
 * Tathagat
-* Yash 
 
 ## Graph Repair
 
