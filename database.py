@@ -1,11 +1,18 @@
 from neo4j import GraphDatabase
+import logging 
 
 class GraphDB:
     def __init__(self, url, user, password):
-        self.driver = GraphDatabase.driver(url, auth=(user, password))
-        print("The Graph Database has been started.")
+        try:
+            self.driver = GraphDatabase.driver(url, auth=(user, password))
+            print("The Graph Database has been started.")
+
+        except Exception as e:
+            logging.error("Failed Connection to Neo4j")
+
 
     def close(self):
+        logging.info("Driver closed.")
         self.driver.close()
         print("\nDriver Closed.")
 

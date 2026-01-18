@@ -35,13 +35,30 @@ if __name__ == "__main__":
     print("Graph compiled successfully. Starting execution...")
     
     # Initial state
+    list_of_inconsistencies=[]
+
+    file_path="inconsistency.txt"
+    with open(file_path,"r") as file:
+        while(True):
+            message1=file.readline()
+            if(len(message1)==0):
+                break
+        
+            list_of_inconsistencies.append(message1)
+            
+        
     initial_state = {
         "login_url": config.NEO4J_URI,
         "login_user": config.NEO4J_USERNAME,
         "login_password": config.NEO4J_PASSWORD,
         "results": [],
         "query": "",
-        "status": ""
+        "status": "",
+        "list_of_inconsistencies": list_of_inconsistencies
     }
+    
     app.invoke(initial_state)
+
+
+
 

@@ -4,7 +4,7 @@ from langgraph.graph import END
 from database import GraphDB
 from state import agent_state
 import config
-
+import logging 
 
 database_description = """
     The database consists of three distinct nodes, each defined by a unique label (:TypeA, :TypeB, and :TypeC). 
@@ -12,10 +12,15 @@ database_description = """
 """
 
 def describe_query(query):
-    client = Client(
-        host=config.OLLAMA_HOST,
-        headers=config.OLLAMA_AUTH_HEADER
-    )
+    #add a log if the connection did not go through 
+    try:
+        client = Client(
+            host=config.OLLAMA_HOST,
+            headers=config.OLLAMA_AUTH_HEADER
+        )
+
+    except Exception as e:
+        logging.error("Failed Connection to Ollama")
 
     print("The Description of the Input:")
     fquestion = f"""
@@ -54,10 +59,15 @@ def generate_repairs(state: agent_state):
     
     formatted_inconsistency = describe_query(query)
     repairs = ""
-    client = Client(
-        host=config.OLLAMA_HOST,
-        headers=config.OLLAMA_AUTH_HEADER
-    )
+
+    try:
+        client = Client(
+            host=config.OLLAMA_HOST,
+            headers=config.OLLAMA_AUTH_HEADER
+        )
+    except Exception as e:
+        logging.error("Failed Connection to Ollama")
+    
     fquestion = f"""
     {database_description}
     The database has inconsistencies that we want to remove.
@@ -106,7 +116,24 @@ def apply(state: agent_state):
     db.close()
 
 def manager(state: agent_state):
-    message = input("Enter a query to process or EXIT for exiting the process:")
+    logging.basicConfig(level=logging.INFO,filename="log.log",filemode="w",
+                    format="%(asctime)s -%(levelname)s -%(message)s")
+    
+    list_of_inconsistencies=state["list_of_inconsistencies"]
+    message=None
+    if(len(list_of_inconsistencies)==0):
+    
+        message="EXIT"
+        logging.info(f"Manager has intiated an exit .")
+
+    
+    else:
+        message=list_of_inconsistencies.pop()
+        logging.info(f"Manager has successfully gotten query:{message}")
+
+    
+
+        
     
     if message == "EXIT":
         return {"status": "EXIT"}
@@ -115,14 +142,20 @@ def manager(state: agent_state):
 
 
 def check1(state: agent_state) -> Literal[END, "retrieve"]:
+    logging.info("Checking whether the user wants to exit or not.")
     status = state["status"]
     if status == "EXIT":
         print("You have exited the process.")
+        logging.info("Successfully Exited. :)")
         return END
     else:
         return "retrieve"
+    
+    
 
 def check2(state: agent_state) -> Literal["manager", "generate_repairs"]:
+    logging.info("Checking whether the such patterns exist in the graph.")
+
     if len(state["results"]) == 0:
         print("No such patterns in the knowledge graph.")
         return "manager"
@@ -130,8 +163,12 @@ def check2(state: agent_state) -> Literal["manager", "generate_repairs"]:
         return "generate_repairs"
 
 def check3(state: agent_state) -> Literal["manager", "generate_repairs"]:
+    logging.info("Repairing the graph...")
+
     # Uses global config for connection as per original logic style
     db = GraphDB(config.NEO4J_URL, config.NEO4J_USERNAME, config.NEO4J_PASSWORD)
+    logging.info("Applying the changes.")
+    
     results = db.run_query(state["query"])
     db.close()
     if len(results) == 0:

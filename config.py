@@ -1,7 +1,7 @@
 # Neo4j Configuration
-NEO4J_URI = "neo4j+s://b136ff94.databases.neo4j.io"
+NEO4J_URI = "neo4j+s://ab4ea282.databases.neo4j.io"
 NEO4J_USERNAME = "neo4j"
-NEO4J_PASSWORD = "PwywlyufkSvSg28QypPDFpbhuci8r2I3rCRyA_7gb18"
+NEO4J_PASSWORD = "fG_j6qXdDmB620AKh0aAawHR32jlTnqxO0M1tNUf2vA"
 NEO4J_DATABASE = "neo4j"
 
 # Aura Configuration

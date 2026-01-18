@@ -8,3 +8,4 @@ class agent_state(TypedDict):
     repairs: str
     query: str
     results: list
+    list_of_inconsistencies:list
