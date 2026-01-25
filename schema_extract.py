@@ -1,10 +1,11 @@
 import neo4j
 from neo4j import GraphDatabase
 from typing import Any, Dict
+import config
 
 # driver 
-URI="neo4j+s://7548ee06.databases.neo4j.io"
-AUTH=("neo4j","ZSXvw0FmrKnCEABa-dEBbBVSGGykHdrxrs-Mtty1ozA")
+URI = config.NEO4J_URI
+AUTH = (config.NEO4J_USERNAME, config.NEO4J_PASSWORD)
 
 NODE_PROPERTIES_QUERY = """
 CALL apoc.meta.data()

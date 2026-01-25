@@ -83,6 +83,6 @@ def create_artificial_textmining_inconsistencies(limit):
 
 # #have to add more 1.edge score cases;
 #                   2.databaseScores>experimentalScores
-#                 3 . duplicates detection 
-#         4 .non overlapping aliases 
-        5 .
+#                 3 . duplicates detection
+#         4 .non overlapping aliases
+#         5 .

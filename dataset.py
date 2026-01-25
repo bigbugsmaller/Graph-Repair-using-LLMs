@@ -1,9 +1,7 @@
 import random
-from neo4j import GraphDatabase
 
-uri="neo4j+s://ab4ea282.databases.neo4j.io"
-user="neo4j"
-password="fG_j6qXdDmB620AKh0aAawHR32jlTnqxO0M1tNUf2vA"
+import config
+from neo4j import GraphDatabase
 
 class FilePatternGenerator:
     def __init__(self, uri, user, password):
@@ -63,11 +61,8 @@ class FilePatternGenerator:
                     """, id1=id1, id2=id2) 
 
 if __name__ == "__main__":
-    
-    NEO4J_URI = "neo4j+s://ab4ea282.databases.neo4j.io"
-    AUTH = ("neo4j", "fG_j6qXdDmB620AKh0aAawHR32jlTnqxO0M1tNUf2vA")
 
-    gen = FilePatternGenerator(NEO4J_URI, AUTH[0], AUTH[1])
+    gen = FilePatternGenerator(config.NEO4J_URI, config.NEO4J_USERNAME, config.NEO4J_PASSWORD)
     
     
     if gen.run_queries_from_file("patterns.txt"):
