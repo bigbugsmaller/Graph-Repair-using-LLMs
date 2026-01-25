@@ -34,6 +34,7 @@ NEO4J_PASSWORD = _env("NEO4J_PASSWORD")
 NEO4J_DATABASE = _env("NEO4J_DATABASE", "neo4j")
 
 # Map URI to URL variable name used in logic
+# TODO: Should standardize and keep only one of these
 NEO4J_URL = NEO4J_URI
 
 # Aura Configuration (optional)
