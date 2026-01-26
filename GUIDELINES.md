@@ -1,5 +1,10 @@
 # Checklist
 
+## How to Use This File
+
+- Treat it as the **stable checklist** of requirements
+- Track active tasks and completed work in `TODO.md`
+
 ## Setup
 - Create `.env` from `.env.example` with valid Neo4j and Ollama credentials.
 - Verify connectivity: run `python schema_extract.py` and confirm it prints a schema.
