@@ -1,0 +1,128 @@
+import json
+from datetime import datetime
+from neo4j import GraphDatabase
+
+class GraphRepairEvaluator:
+    def __init__(self, uri, user, password, ontology_path):
+        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+        with open(ontology_path, 'r') as f:
+            self.ontology = json.load(f)
+            
+        self.WEIGHT_NODE = 1.0
+        self.WEIGHT_EDGE = 0.5
+        self.WEIGHT_ATTR = 0.2
+
+    def fetch_snapshot(self):
+        nodes = {}
+        edges = []
+        with self.driver.session() as session:
+            result = session.run("MATCH (n) RETURN n.id as id, labels(n) as labels, properties(n) as props")
+            for record in result:
+                props = dict(record['props'])
+                props.pop('inconsistency', None) 
+                nodes[record['id']] = {
+                    'labels': record['labels'],
+                    'props': props
+                }
+            
+            result = session.run("MATCH (n)-[r]->(m) RETURN n.id as start, m.id as end, type(r) as type, properties(r) as props")
+            for record in result:
+                props = dict(record['props'])
+                props.pop('inconsistency', None)
+                edges.append({
+                    'start': record['start'],
+                    'end': record['end'],
+                    'type': record['type'],
+                    'props': props
+                })
+        return {'nodes': nodes, 'edges': edges}
+
+    def count_violations(self, graph):
+        violations = 0
+        nodes = graph['nodes']
+        edges = graph['edges']
+        
+        for edge in edges:
+            start_node = nodes.get(edge['start'])
+            end_node = nodes.get(edge['end'])
+            if not start_node or not end_node: continue
+            
+            triple = [start_node['labels'][0], edge['type'], end_node['labels'][0]]
+            if triple not in self.ontology.get('triples', []):
+                violations += 1
+                
+            for conflict_pair in self.ontology.get('exclusive', []):
+                if edge['type'] in conflict_pair:
+                    other_type = conflict_pair[0] if edge['type'] == conflict_pair[1] else conflict_pair[1]
+                    if any(e['start'] == edge['start'] and e['end'] == edge['end'] and e['type'] == other_type for e in edges):
+                        violations += 1
+
+        for node_id, node_data in nodes.items():
+            for rel_type, max_deg in self.ontology.get('max_degree', {}).items():
+                deg = sum(1 for e in edges if e['start'] == node_id and e['type'] == rel_type)
+                if deg > max_deg:
+                    violations += (deg - max_deg)
+
+        for edge in edges:
+            if edge['type'] == 'TEMPORAL_LINK': 
+                start = edge['props'].get('startDate')
+                end = edge['props'].get('endDate')
+                if start and end and start >= end:
+                    violations += 1
+
+        threshold = self.ontology.get('property_constraint', {}).get('threshold', 0)
+        for node_data in nodes.values():
+            if 'x' in node_data['props'] and node_data['props']['x'] <= threshold:
+                violations += 1
+
+        return violations
+
+    def calculate_ged(self, graph_a, graph_b):
+        distance = 0.0
+        
+        all_ids = set(graph_a['nodes'].keys()) | set(graph_b['nodes'].keys())
+        for nid in all_ids:
+            if nid not in graph_a['nodes'] or nid not in graph_b['nodes']:
+                distance += self.WEIGHT_NODE
+            elif graph_a['nodes'][nid]['labels'] != graph_b['nodes'][nid]['labels']:
+                distance += self.WEIGHT_NODE
+            else:
+                props_a = graph_a['nodes'][nid]['props']
+                props_b = graph_b['nodes'][nid]['props']
+                if props_a != props_b:
+                    distance += self.WEIGHT_ATTR
+
+        edges_a = {(e['start'], e['end'], e['type']) for e in graph_a['edges']}
+        edges_b = {(e['start'], e['end'], e['type']) for e in graph_b['edges']}
+        
+        added_edges = edges_b - edges_a
+        deleted_edges = edges_a - edges_b
+        distance += (len(added_edges) + len(deleted_edges)) * self.WEIGHT_EDGE
+        
+        return distance
+
+    def evaluate_repair(self, snapshot_clean, snapshot_in, tokens_used):
+        snapshot_out = self.fetch_snapshot()
+        
+        v_in = self.count_violations(snapshot_in)
+        v_out = self.count_violations(snapshot_out)
+        
+        validity = (v_in - v_out) / v_in if v_in > 0 else 1.0
+        
+        efficiency = tokens_used / (v_in - v_out) if (v_in - v_out) > 0 else float('inf')
+        
+        minimality = self.calculate_ged(snapshot_in, snapshot_out)
+        
+        injection_cost = self.calculate_ged(snapshot_clean, snapshot_in)
+        repair_cost = minimality
+        optimality = injection_cost / repair_cost if repair_cost > 0 else 0.0
+        
+        fidelity_dist = self.calculate_ged(snapshot_out, snapshot_clean)
+        
+        return {
+            "Validity": round(validity, 4),
+            "Efficiency": round(efficiency, 2),
+            "Minimality (GED)": minimality,
+            "Optimality Ratio": round(optimality, 4),
+            "Fidelity (Dist from Gold)": fidelity_dist
+        }
