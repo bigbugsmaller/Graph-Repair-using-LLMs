@@ -127,10 +127,10 @@ gen.close()
 
 ### Other Utilities
 
-- Generate (destructive) synthetic data:
-  - `dataset.py` wipes the database (`MATCH (n) DETACH DELETE n`) before loading patterns.
-- Extract schema via APOC meta (requires APOC installed/enabled in Neo4j):
-  - `schema_extract.py`
+- Generate (destructive) pattern-based synthetic data:
+  - `scripts/load_pattern_dataset.py` wipes the database (`MATCH (n) DETACH DELETE n`) before loading patterns from `data/patterns.txt`.
+- Inspect the current graph schema:
+  - `scripts/show_schema.py`
 - Run the synthetic end-to-end experiment flow:
   - `scripts/benchmark.py`
 - Export graph snapshots:

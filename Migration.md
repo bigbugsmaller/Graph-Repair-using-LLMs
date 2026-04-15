@@ -45,8 +45,8 @@ The new layout separates those concerns so future work can scale without repeate
 - Old `database.py` -> New [graph_repair/db.py](/Users/narendradevireddy/Desktop/development/dev-graph-repair-llm/graph_repair/db.py)
   Neo4j access is centralized.
 
-- Old `schema_extract.py` -> New [graph_repair/schema.py](/Users/narendradevireddy/Desktop/development/dev-graph-repair-llm/graph_repair/schema.py)
-  APOC schema queries are separated from the CLI wrapper.
+- Old `schema_extract.py` -> New [graph_repair/schema.py](/Users/narendradevireddy/Desktop/development/dev-graph-repair-llm/graph_repair/schema.py) plus [scripts/show_schema.py](/Users/narendradevireddy/Desktop/development/dev-graph-repair-llm/scripts/show_schema.py)
+  APOC schema queries are separated from the CLI wrapper and the manual schema-inspection command now lives in `scripts/`.
 
 ### Synthetic graph generation and experiments
 
@@ -67,6 +67,12 @@ The new layout separates those concerns so future work can scale without repeate
 - Old `create_G_in.py` -> New [scripts/create_G_in.py](/Users/narendradevireddy/Desktop/development/dev-graph-repair-llm/scripts/create_G_in.py)
 
 - Old `create_G_all_in.py` -> New [scripts/create_G_all_in.py](/Users/narendradevireddy/Desktop/development/dev-graph-repair-llm/scripts/create_G_all_in.py)
+
+- Old `dataset.py` -> New [scripts/load_pattern_dataset.py](/Users/narendradevireddy/Desktop/development/dev-graph-repair-llm/scripts/load_pattern_dataset.py)
+  The file-based dataset loader is now a clearly named helper script.
+
+- Old `patterns.txt` -> New [data/patterns.txt](/Users/narendradevireddy/Desktop/development/dev-graph-repair-llm/data/patterns.txt)
+  Static pattern data now lives in a dedicated data folder instead of the repository root.
 
 ## Functionality that is now split across multiple files
 
@@ -124,6 +130,8 @@ These old-style compatibility wrappers are no longer needed in the repository ro
 - `database.py`
 - `state.py`
 - `prompt_template.py`
+- `dataset.py`
+- `schema_extract.py`
 - `generator.py`
 - `evaluator.py`
 - `snapshot_tool.py`
@@ -142,3 +150,4 @@ Their behavior now lives either inside `graph_repair/` or `scripts/`.
 - Work on Neo4j helpers in `graph_repair/db.py` and `graph_repair/schema.py`
 - Work on synthetic graph and experiment evaluation in `graph_repair/synthetic/` and `graph_repair/experiments/`
 - Use `scripts/` only for runnable helper entrypoints
+- Keep sample inputs and static data in `data/`
