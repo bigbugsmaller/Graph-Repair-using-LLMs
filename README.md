@@ -34,6 +34,8 @@ This repo reads configuration from environment variables (optionally loaded from
 
 See `LLM_PROVIDER_GUIDE.md` for detailed configuration options.
 
+For running this project on Sharanga HPC, see [HPC_QUICKSTART.md](/Users/narendradevireddy/Desktop/development/dev-graph-repair-llm/HPC_QUICKSTART.md).
+
 ## Project Structure
 
 Core code now lives under `graph_repair/`:
