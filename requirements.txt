@@ -2,4 +2,7 @@ langgraph
 neo4j
 langchain-ollama
 ollama
+openai
 ipython
+pyyaml
+faker

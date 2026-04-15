@@ -1,52 +1,21 @@
-from langgraph.graph import StateGraph, START
-from state import agent_state
-import nodes
+from pathlib import Path
+
 import config
+from graph_repair.workflow.app import build_repair_app
+
+
+def _load_inconsistencies() -> list[str]:
+    for filename in ("inconsistency.txt", "inconsistencies.txt"):
+        path = Path(filename)
+        if path.exists():
+            return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    raise FileNotFoundError("Expected inconsistency.txt or inconsistencies.txt in the project root.")
+
 
 if __name__ == "__main__":
-    
-    workflow = StateGraph(agent_state)
-    
-    workflow.add_node("manager", nodes.manager)
-    workflow.add_node("retrieve", nodes.retrieve)
-    workflow.add_node("generate_repairs", nodes.generate_repairs)
-    workflow.add_node("apply", nodes.apply)
-    
-    workflow.add_edge(START, "manager")
-    
-    # Add Conditional Edges
-    workflow.add_conditional_edges(
-        "manager",
-        nodes.check1,
-    )
-    workflow.add_conditional_edges(
-        "retrieve",
-        nodes.check2,
-    )
-    workflow.add_edge("generate_repairs", "apply")
-    workflow.add_conditional_edges(
-        "apply",
-        nodes.check3
-    )
-
-    # Compile the graph
-    app = workflow.compile()
-    
+    app = build_repair_app()
     print("Graph compiled successfully. Starting execution...")
-    
-    # Initial state
-    list_of_inconsistencies=[]
 
-    file_path="inconsistency.txt"
-    with open(file_path,"r") as file:
-        while(True):
-            message1=file.readline()
-            if(len(message1)==0):
-                break
-        
-            list_of_inconsistencies.append(message1)
-            
-        
     initial_state = {
         "login_url": config.NEO4J_URI,
         "login_user": config.NEO4J_USERNAME,
@@ -54,11 +23,14 @@ if __name__ == "__main__":
         "results": [],
         "query": "",
         "status": "",
-        "list_of_inconsistencies": list_of_inconsistencies
+        "repairs": "",
+        "database_description": "",
+        "cycle_count": 0,
+        "total_tokens": 0,
+        "list_of_inconsistencies": _load_inconsistencies(),
     }
-    
-    app.invoke(initial_state)
 
+    app.invoke(initial_state)
 
 
 

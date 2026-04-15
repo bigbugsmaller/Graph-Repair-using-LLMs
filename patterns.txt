@@ -1,0 +1,65 @@
+// Graph Patterns for Testing - Some contain intentional inconsistencies
+// Lines starting with '//' are comments and will be ignored
+
+// Pattern 1: Basic chain pattern (TypeA -> TypeB -> TypeC)
+CREATE (a1:TypeA {id: 1, name: 'A1'})-[:TO]->(b1:TypeB {id: 1, name: 'B1'})-[:TO]->(c1:TypeC {id: 1, name: 'C1'})
+
+// Pattern 2: Inconsistent chain (TypeA -> TypeB <- TypeC) - violates expected direction
+CREATE (a2:TypeA {id: 2, name: 'A2'})-[:TO]->(b2:TypeB {id: 2, name: 'B2'})<-[:TO]-(c2:TypeC {id: 2, name: 'C2'})
+
+// Pattern 3: Another valid chain
+CREATE (a3:TypeA {id: 3, name: 'A3'})-[:TO]->(b3:TypeB {id: 3, name: 'B3'})-[:TO]->(c3:TypeC {id: 3, name: 'C3'})
+
+// Pattern 4: Inconsistent - TypeA directly to TypeC (missing intermediate TypeB)
+CREATE (a4:TypeA {id: 4, name: 'A4'})-[:TO]->(c4:TypeC {id: 4, name: 'C4'})
+
+// Pattern 5: Valid chain with properties
+CREATE (a5:TypeA {id: 5, name: 'A5', value: 100})-[:TO {weight: 0.8}]->(b5:TypeB {id: 5, name: 'B5', status: 'active'})-[:TO {weight: 0.9}]->(c5:TypeC {id: 5, name: 'C5', final: true})
+
+// Pattern 6: Inconsistent - circular reference (TypeA -> TypeB -> TypeC -> TypeA)
+CREATE (a6:TypeA {id: 6, name: 'A6'})-[:TO]->(b6:TypeB {id: 6, name: 'B6'})-[:TO]->(c6:TypeC {id: 6, name: 'C6'})-[:TO]->(a6)
+
+// Pattern 7: Valid chain
+CREATE (a7:TypeA {id: 7, name: 'A7'})-[:TO]->(b7:TypeB {id: 7, name: 'B7'})-[:TO]->(c7:TypeC {id: 7, name: 'C7'})
+
+// Pattern 8: Inconsistent - TypeB without TypeA predecessor
+CREATE (b8:TypeB {id: 8, name: 'B8'})-[:TO]->(c8:TypeC {id: 8, name: 'C8'})
+
+// Pattern 9: Valid chain with multiple properties
+CREATE (a9:TypeA {id: 9, name: 'A9', category: 'primary'})-[:TO]->(b9:TypeB {id: 9, name: 'B9', category: 'secondary'})-[:TO]->(c9:TypeC {id: 9, name: 'C9', category: 'tertiary'})
+
+// Pattern 10: Inconsistent - TypeC without any predecessors
+CREATE (c10:TypeC {id: 10, name: 'C10', orphan: true})
+
+// Pattern 11: Valid branching - one TypeA to multiple TypeB
+CREATE (a11:TypeA {id: 11, name: 'A11'})-[:TO]->(b11a:TypeB {id: 11, name: 'B11a'})-[:TO]->(c11a:TypeC {id: 11, name: 'C11a'})
+CREATE (a11)-[:TO]->(b11b:TypeB {id: 12, name: 'B11b'})-[:TO]->(c11b:TypeC {id: 12, name: 'C11b'})
+
+// Pattern 12: Inconsistent - duplicate relationship
+CREATE (a12:TypeA {id: 13, name: 'A12'})-[:TO]->(b12:TypeB {id: 13, name: 'B12'})
+CREATE (a12)-[:TO]->(b12)
+
+// Pattern 13: Valid chain
+CREATE (a13:TypeA {id: 14, name: 'A13'})-[:TO]->(b13:TypeB {id: 14, name: 'B13'})-[:TO]->(c13:TypeC {id: 14, name: 'C13'})
+
+// Pattern 14: Inconsistent - wrong relationship type
+CREATE (a14:TypeA {id: 15, name: 'A14'})-[:WRONG_REL]->(b14:TypeB {id: 15, name: 'B14'})-[:TO]->(c14:TypeC {id: 15, name: 'C14'})
+
+// Pattern 15: Valid chain
+CREATE (a15:TypeA {id: 16, name: 'A15'})-[:TO]->(b15:TypeB {id: 16, name: 'B15'})-[:TO]->(c15:TypeC {id: 16, name: 'C15'})
+
+// Pattern 16: Inconsistent - TypeB connected to multiple TypeC (if cardinality constraint exists)
+CREATE (a16:TypeA {id: 17, name: 'A16'})-[:TO]->(b16:TypeB {id: 17, name: 'B16'})-[:TO]->(c16a:TypeC {id: 17, name: 'C16a'})
+CREATE (b16)-[:TO]->(c16b:TypeC {id: 18, name: 'C16b'})
+
+// Pattern 17: Valid chain
+CREATE (a17:TypeA {id: 19, name: 'A17'})-[:TO]->(b17:TypeB {id: 19, name: 'B17'})-[:TO]->(c17:TypeC {id: 19, name: 'C17'})
+
+// Pattern 18: Inconsistent - missing required property
+CREATE (a18:TypeA {id: 20})-[:TO]->(b18:TypeB {id: 20, name: 'B18'})-[:TO]->(c18:TypeC {id: 20, name: 'C18'})
+
+// Pattern 19: Valid chain with timestamps
+CREATE (a19:TypeA {id: 21, name: 'A19', created: datetime()})-[:TO]->(b19:TypeB {id: 21, name: 'B19', created: datetime()})-[:TO]->(c19:TypeC {id: 21, name: 'C19', created: datetime()})
+
+// Pattern 20: Inconsistent - reverse chain (TypeC -> TypeB -> TypeA)
+CREATE (c20:TypeC {id: 22, name: 'C20'})-[:TO]->(b20:TypeB {id: 22, name: 'B20'})-[:TO]->(a20:TypeA {id: 22, name: 'A20'})
