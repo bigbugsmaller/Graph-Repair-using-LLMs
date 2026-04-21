@@ -1,7 +1,10 @@
 from pathlib import Path
 
 import config
+from graph_repair.seed import init_seed
 from graph_repair.workflow.app import build_repair_app
+
+init_seed()
 
 
 def _load_inconsistencies() -> list[str]:

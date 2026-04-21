@@ -54,3 +54,14 @@ OLLAMA_AUTH_HEADER = {"Authorization": f"Bearer {_ollama_token}"} if _ollama_tok
 # LM Studio Configuration
 LM_STUDIO_HOST = _env("LM_STUDIO_HOST", "http://localhost:1234")
 LM_STUDIO_MODEL = _env("LM_STUDIO_MODEL", "meta-llama-3.1-8b-instruct")
+
+# Reproducibility
+# Set RANDOM_SEED to any integer for deterministic graph generation and experiment runs.
+# Leave empty or unset for non-deterministic behaviour.
+_seed_raw = _env("RANDOM_SEED")
+RANDOM_SEED: int | None = int(_seed_raw) if _seed_raw else None
+
+# LLM seed passed to Ollama ("seed" option) and LM Studio ("seed" param).
+# Only effective when the model/provider honours it. Defaults to RANDOM_SEED.
+_llm_seed_raw = _env("LLM_SEED")
+LLM_SEED: int | None = int(_llm_seed_raw) if _llm_seed_raw else RANDOM_SEED

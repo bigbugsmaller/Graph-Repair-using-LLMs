@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import config
+from graph_repair.seed import init_seed
 from graph_repair.experiments.evaluator import TailoredEvaluator
 from graph_repair.experiments.snapshot import export_snapshot
 from graph_repair.synthetic.legacy_generator import Generator
@@ -18,6 +19,7 @@ def load_inconsistencies(file_path: str = "inconsistencies.txt") -> list[str]:
 
 
 def run_experiment():
+    init_seed()
     generator = Generator(config.NEO4J_URI, (config.NEO4J_USERNAME, config.NEO4J_PASSWORD))
 
     print("Generating Graph Rules...")

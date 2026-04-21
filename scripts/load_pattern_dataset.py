@@ -7,6 +7,9 @@ ensure_project_root()
 
 import config
 from neo4j import GraphDatabase
+from graph_repair.seed import init_seed
+
+init_seed()
 
 
 class FilePatternGenerator:

@@ -15,6 +15,7 @@ from pathlib import Path
 from neo4j import GraphDatabase
 from faker import Faker
 import config
+from graph_repair.seed import init_seed
 
 
 class GraphGenerator:
@@ -409,6 +410,9 @@ Examples:
     parser.add_argument('--node-prefix', type=str, default='Node', help='Node name prefix (default: Node)')
     parser.add_argument('--edge-prefix', type=str, default='R', help='Edge type prefix (default: R)')
     
+    # Reproducibility
+    parser.add_argument('--seed', type=int, default=None, help='Random seed for reproducibility (overrides RANDOM_SEED env var)')
+
     # Database options
     parser.add_argument('--wipe', action='store_true', help='Wipe database without prompting')
     parser.add_argument('--no-wipe', action='store_true', help='Keep existing data without prompting')
@@ -438,6 +442,9 @@ Examples:
         print("❌ Error: Neo4j credentials not found. Set them in .env or use --uri, --user, --password")
         return 1
     
+    # Seed randomness
+    init_seed(args.seed)
+
     # Initialize generator
     generator = GraphGenerator(uri, user, password)
     

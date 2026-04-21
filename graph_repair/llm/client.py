@@ -42,11 +42,15 @@ def stream_chat_text(prompt: str) -> str:
     output = ""
 
     if provider == "lm-studio":
-        stream = client.chat.completions.create(
-            model=config.LM_STUDIO_MODEL,
-            messages=messages,
-            stream=True,
-        )
+        create_kwargs: dict = {
+            "model": config.LM_STUDIO_MODEL,
+            "messages": messages,
+            "stream": True,
+        }
+        if config.LLM_SEED is not None:
+            create_kwargs["seed"] = config.LLM_SEED
+            create_kwargs["temperature"] = 0.0
+        stream = client.chat.completions.create(**create_kwargs)
         for chunk in stream:
             content = chunk.choices[0].delta.content
             if content:
@@ -55,7 +59,10 @@ def stream_chat_text(prompt: str) -> str:
         print()
         return output.strip()
 
-    for part in client.chat(config.OLLAMA_MODEL, messages=messages, stream=True):
+    ollama_kwargs: dict = {}
+    if config.LLM_SEED is not None:
+        ollama_kwargs["options"] = {"seed": config.LLM_SEED, "temperature": 0.0}
+    for part in client.chat(config.OLLAMA_MODEL, messages=messages, stream=True, **ollama_kwargs):
         content = part["message"]["content"]
         output += content
         print(content, end="", flush=True)
