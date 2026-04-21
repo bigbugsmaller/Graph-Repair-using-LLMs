@@ -41,8 +41,16 @@ NEO4J_URL = NEO4J_URI
 AURA_INSTANCEID = _env("AURA_INSTANCEID")
 AURA_INSTANCENAME = _env("AURA_INSTANCENAME")
 
+# LLM Provider Configuration
+# Options: "ollama" (default) or "lm-studio"
+LLM_PROVIDER = _env("LLM_PROVIDER", "ollama")
+
 # Ollama Configuration
 OLLAMA_HOST = _env("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = _env("OLLAMA_MODEL", "llama3.1")
 _ollama_token = _env("OLLAMA_BEARER_TOKEN")
 OLLAMA_AUTH_HEADER = {"Authorization": f"Bearer {_ollama_token}"} if _ollama_token else {}
+
+# LM Studio Configuration
+LM_STUDIO_HOST = _env("LM_STUDIO_HOST", "http://localhost:1234")
+LM_STUDIO_MODEL = _env("LM_STUDIO_MODEL", "meta-llama-3.1-8b-instruct")

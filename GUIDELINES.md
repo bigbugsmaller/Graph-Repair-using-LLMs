@@ -7,7 +7,7 @@
 
 ## Setup
 - Create `.env` from `.env.example` with valid Neo4j and Ollama credentials.
-- Verify connectivity: run `python schema_extract.py` and confirm it prints a schema.
+- Verify connectivity: run `python scripts/show_schema.py` and confirm it prints a schema.
 - Confirm `python main.py` runs end-to-end (even with a tiny dummy inconsistency list).
 
 ## Define Constraints (Cypher-first)
@@ -48,7 +48,7 @@ Create `runner.py`:
 - Stop when violations are 0 or `max_iters` reached.
 
 Prompt requirements:
-- Include **schema** from `schema_extract.py`.
+- Include **schema** from `scripts/show_schema.py`.
 - Include the **exact violating pattern** returned by the verifier.
 - Require output to be **only Cypher**, ending with `;`.
 
