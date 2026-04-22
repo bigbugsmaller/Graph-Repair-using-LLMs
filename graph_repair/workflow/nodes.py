@@ -10,7 +10,6 @@ import re
 from schema import get_schema, get_structured_schema
 from neo4j.exceptions import ClientError, CypherSyntaxError
 from prompts import DESCRIBE_QUERY_PROMPT, GENERATE_REPAIRS_PROMPT
-log = logging.getLogger("nodes")
 
 _CYPHER_START_RE = re.compile(r"\b(MATCH|MERGE|CREATE|DELETE|DETACH|SET|REMOVE|WITH|CALL|UNWIND)\b", re.IGNORECASE)
 
