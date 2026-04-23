@@ -65,3 +65,38 @@ RANDOM_SEED: int | None = int(_seed_raw) if _seed_raw else None
 # Only effective when the model/provider honours it. Defaults to RANDOM_SEED.
 _llm_seed_raw = _env("LLM_SEED")
 LLM_SEED: int | None = int(_llm_seed_raw) if _llm_seed_raw else RANDOM_SEED
+
+# --- Ontology & Graph Generation Configuration ---
+NUM_NODE_TYPES = 50
+NUM_REL_TYPES = 15
+NUM_NODES = 80 # Adjust up to 10000 for scaling runs
+
+# Generation probabilities for constraints
+PROB_MAX_DEGREE = 0.2
+PROB_EXCLUSIVE = 0.5    # Threshold (0.2 to 0.5 -> 30%)
+PROB_DEPENDENCY = 0.75  # Threshold (0.5 to 0.75 -> 25%)
+# Remaining probability implicitly comparison (0.75 to 1.0 -> 25%)
+
+# Generation settings
+MAX_DEGREE_LIMIT_RANGE = (1, 5)
+PROPERTY_THRESHOLD_RANGE = (30, 70)
+RELATION_CREATION_PROBABILITY = 0.2
+INJECTION_COUNT_RANGE = (20, 30)
+
+# Comparison property (prop) range
+PROP_MIN_VAL = 0
+PROP_MAX_VAL = 1000
+
+# --- Property & Violation Offsets ---
+PROPERTY_MAX_VALUE = 100
+PROPERTY_VIOLATION_OFFSET = 10 
+
+# Cardinality overflow offset
+CARDINALITY_OVERFLOW_OFFSET = 2
+
+# Comparison logic (N1.prop > N2.prop)
+COMPARISON_INCREMENT = 5 #The "safety buffer" used to make a node valid if it's currently failing the rule.
+COMPARISON_VIOLATION_OFFSET = 20 #he amount subtracted to intentionally break the rule during violation injection.
+
+# Overlap specific
+NUM_HUBS = 3

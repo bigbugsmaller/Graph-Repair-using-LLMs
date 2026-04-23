@@ -9,7 +9,7 @@ class ViolationInjector:
     def inject_violations(self):
         print("Injecting violations...")
 
-        violation_types = ["triple", "cardinality", "exclusive", "dependency", "temporal", "property_x"]
+        violation_types = ["triple", "cardinality", "exclusive", "dependency", "comparison", "property_x"]
         total_success = 0
 
         with open("inconsistencies.txt", "w") as file:
@@ -101,31 +101,31 @@ class ViolationInjector:
                                 MATCH (a:{dep_node} {{id: '{src_id}'}}) RETURN a
                             """)
 
-                    elif v_type == "temporal":
-                        temp_rule_node = None
-                        temp_rule = None
+                    elif v_type == "comparison":
+                        comp_rule_node = None
+                        comp_rule = None
                         for nt, rule in self.ontology.neighborhood_rules.items():
-                            if rule["type"] == "temporal":
-                                temp_rule_node = nt
-                                temp_rule = rule
+                            if rule["type"] == "comparison":
+                                comp_rule_node = nt
+                                comp_rule = rule
                                 break
 
-                        if temp_rule:
+                        if comp_rule:
                             self.db.run_query(f"""
-                                MATCH (a:{temp_rule_node}), (b:{temp_rule['target']})
-                                WHERE a.id <> b.id AND a.date_val IS NOT NULL AND b.date_val IS NOT NULL
+                                MATCH (a:{comp_rule_node}), (b:{comp_rule['target']})
+                                WHERE a.id <> b.id AND a.prop IS NOT NULL AND b.prop IS NOT NULL
                                 WITH a, b ORDER BY rand() LIMIT 1
-                                MERGE (a)-[:{temp_rule['rel_type']} {{A1: 'active'}}]->(b)
-                                SET a.date_val = b.date_val + duration('P{config.TEMPORAL_INCREMENT_DAYS}D')
+                                MERGE (a)-[:{comp_rule['rel_type']} {{A1: 'active'}}]->(b)
+                                SET a.prop = b.prop + {config.COMPARISON_INCREMENT}
                             """)
                             result = self.db.run_query(f"""
                                 MATCH (a)-[r {{A1: 'active'}}]->(b)
-                                WHERE a.date_val > b.date_val
+                                WHERE a.prop > b.prop
                                 WITH a, b ORDER BY rand() LIMIT 1
-                                SET a.date_val = b.date_val - duration('P{config.TEMPORAL_VIOLATION_DAYS}D')
+                                SET a.prop = b.prop - {config.COMPARISON_VIOLATION_OFFSET}
                                 RETURN a
                             """)
-                        inconsistency_query = f"MATCH (a)-[r {{A1: 'active'}}]->(b) WHERE a.date_val <= b.date_val RETURN a, r, b"
+                        inconsistency_query = f"MATCH (a)-[r {{A1: 'active'}}]->(b) WHERE a.prop <= b.prop RETURN a, r, b"
 
                     elif v_type == "property_x" and self.ontology.property_constraint:
                         constraint = self.ontology.property_constraint
