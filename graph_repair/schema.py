@@ -3,7 +3,6 @@ from neo4j import GraphDatabase
 from typing import Any, Dict
 from graph_repair.db import GraphDB
 
-
 NODE_PROPERTIES_QUERY = """
 CALL apoc.meta.data()
 YIELD label, other, elementType, type, property
