@@ -65,3 +65,8 @@ RANDOM_SEED: int | None = int(_seed_raw) if _seed_raw else None
 # Only effective when the model/provider honours it. Defaults to RANDOM_SEED.
 _llm_seed_raw = _env("LLM_SEED")
 LLM_SEED: int | None = int(_llm_seed_raw) if _llm_seed_raw else RANDOM_SEED
+
+# Convenience aliases used by workflow nodes and the agentic layer.
+# OLLAMA_SEED mirrors LLM_SEED; OLLAMA_TEMPERATURE controls LLM randomness.
+OLLAMA_SEED: int | None = LLM_SEED
+OLLAMA_TEMPERATURE: float = float(_env("OLLAMA_TEMPERATURE", "0"))

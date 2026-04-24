@@ -42,7 +42,7 @@ def init_seed(seed: int | None = None) -> int | None:
     if _SEEDED:
         return seed
 
-    seed = seed if seed is not None else config.RANDOM_SEED
+    seed = seed if seed is not None else getattr(config, "RANDOM_SEED", None)
     if seed is None:
         logging.info("RANDOM_SEED not set — running non-deterministically.")
         return None

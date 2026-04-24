@@ -1,15 +1,16 @@
 from typing import Literal
 from ollama import Client
 from langgraph.graph import END
-from db import GraphDB
-from state import agent_state
+from graph_repair.workflow.agent.db import GraphDB
+from graph_repair.workflow.agent.state import AgentState
 import config
 from neo4j import GraphDatabase
 import logging
 import re
-from schema import get_schema, get_structured_schema
+from graph_repair.schema import get_schema, get_structured_schema
 from neo4j.exceptions import ClientError, CypherSyntaxError
-from prompts import DESCRIBE_QUERY_PROMPT, GENERATE_REPAIRS_PROMPT
+from graph_repair.prompts.query_generation import DESCRIBE_QUERY_PROMPT, GENERATE_REPAIRS_PROMPT
+log = logging.getLogger("nodes")
 
 _CYPHER_START_RE = re.compile(r"\b(MATCH|MERGE|CREATE|DELETE|DETACH|SET|REMOVE|WITH|CALL|UNWIND)\b", re.IGNORECASE)
 
@@ -17,7 +18,7 @@ _CYPHER_START_RE = re.compile(r"\b(MATCH|MERGE|CREATE|DELETE|DETACH|SET|REMOVE|W
 
 
 
-def extract_schema(state: agent_state):
+def extract_schema(state: AgentState):
     logging.info("Extracting graph schema preprocessing...")
     db = GraphDB(state["login_url"], state["login_user"], state["login_password"])
     output = get_structured_schema(db)
@@ -26,7 +27,7 @@ def extract_schema(state: agent_state):
     logging.info("Schema generated successfully.")
     return {"database_description": database_description}
 
-def describe_query(state:agent_state,query):
+def describe_query(state:AgentState,query):
     #add a log if the connection did not go through 
     try:
         client = Client(
@@ -72,7 +73,7 @@ def query_is_correct(string):
     log.debug("Cleaned repair query: %s", cleaned)
     return cleaned
 
-def generate_repairs(state: agent_state):
+def generate_repairs(state: AgentState):
     query = state["query"]
     database_description = state["database_description"]
     total_tokens = state.get("total_tokens", 0)
@@ -119,7 +120,7 @@ def generate_repairs(state: agent_state):
     cycle_count = state.get("cycle_count", 0) + 1
     return {"repairs": repairs, "cycle_count": cycle_count, "total_tokens": total_tokens}
 
-def retrieve(state: agent_state):
+def retrieve(state: AgentState):
     curr_query = state["query"]
     log.info("Retrieving inconsistency pattern: %s", curr_query)
 
@@ -145,7 +146,7 @@ def retrieve(state: agent_state):
 
     return {"results": results, "repair_status_array": repair_status_array}
 
-def apply(state: agent_state):
+def apply(state: AgentState):
     curr_query = state["repairs"]
     NEO4J_URL = state["login_url"]
     NEO4J_PASSWORD = state["login_password"]
@@ -165,56 +166,55 @@ def apply(state: agent_state):
     finally:
         db.close()
 
-def manager(state: agent_state):
-    list_of_inconsistencies = state["list_of_inconsistencies"]
+def manager(state: AgentState):
+    inconsistencies = state.get("list_of_inconsistencies", [])
     current_index = state.get("current_index", 0)
     iteration_count = state.get("iteration_count", 0)
-    repair_status_array = list(state.get("repair_status_array", [False] * len(list_of_inconsistencies)))
+    
+    # Initialize status arrays if empty
+    repair_status_array = list(state.get("repair_status_array", [False] * len(inconsistencies)))
     prev_repair_status_array = list(state.get("prev_repair_status_array", []))
 
-    if len(list_of_inconsistencies) == 0:
-        log.info("Manager exiting: no inconsistencies to process.")
+    if not inconsistencies:
         return {"status": "EXIT"}
 
-    if current_index >= len(list_of_inconsistencies):
-        log.info("Completed iteration %d. repair_status_array=%s",
-                 iteration_count, repair_status_array)
+    # CHECK FOR ITERATION COMPLETION
+    if current_index >= len(inconsistencies):
+        # Convergence Condition: Did the repair status change at all this round?
         if repair_status_array == prev_repair_status_array:
-            log.info("Repair status unchanged from previous iteration — no further progress. Exiting.")
-            return {"status": "EXIT", "iteration_count": iteration_count,
-                    "repair_status_array": repair_status_array}
-        else:
-            prev_repair_status_array = list(repair_status_array)
-            iteration_count += 1
-            current_index = 0
-            log.info("Starting iteration %d.", iteration_count)
+            log.info("CONVERGENCE REACHED: No changes in repair status. Exiting.")
+            return {"status": "EXIT"}
+        
+        # Reset for next iteration
+        log.info(f"Iteration {iteration_count} complete. Starting next pass.")
+        return {
+            "prev_repair_status_array": list(repair_status_array),
+            "current_index": 0,
+            "iteration_count": iteration_count + 1,
+            "status": "Processing"
+        }
 
-    message = list_of_inconsistencies[current_index]
-    log.info("Manager dispatching query [%d/%d] (iteration %d): %s",
-             current_index + 1, len(list_of_inconsistencies), iteration_count, message)
+    # DISPATCH NEXT QUERY
+    current_query = inconsistencies[current_index]
     return {
         "status": "Processing",
-        "query": message,
-        "cycle_count": 0,
+        "query": current_query,
         "current_index": current_index + 1,
-        "iteration_count": iteration_count,
-        "repair_status_array": repair_status_array,
-        "prev_repair_status_array": prev_repair_status_array
+        "cycle_count": 0,
+        "messages": [] # Clear agent memory for the NEW query
     }
 
 
-def check_manager_status(state: agent_state) -> Literal[END, "retrieve"]:
-    status = state["status"]
+def check_manager_status(state: AgentState) -> Literal[END, "agent_node"]:
+    status = state.get("status")
     if status == "EXIT":
         log.info("Manager status EXIT — finishing agent run.")
         return END
     else:
-        log.debug("Manager status Processing — routing to retrieve.")
-        return "retrieve"
-    
-    
+        log.debug("Manager status Processing — routing to agent_node.")
+        return "agent_node"
 
-def evaluate_retrieval_results(state: agent_state) -> Literal["manager", "generate_repairs"]:
+def evaluate_retrieval_results(state: AgentState) -> Literal["manager", "generate_repairs"]:
     result_count = len(state["results"])
     if result_count == 0:
         log.info("No pattern found in graph — skipping repair, returning to manager.")
@@ -223,7 +223,7 @@ def evaluate_retrieval_results(state: agent_state) -> Literal["manager", "genera
         log.info("Pattern confirmed (%d result(s)) — routing to generate_repairs.", result_count)
         return "generate_repairs"
 
-def verify_repairs(state: agent_state) -> Literal["manager", "generate_repairs"]:
+def verify_repairs(state: AgentState) -> Literal["manager", "generate_repairs"]:
     log.info("Verifying repair by re-running inconsistency query...")
 
     db = GraphDB(state["login_url"], state["login_user"], state["login_password"])
@@ -245,7 +245,7 @@ def verify_repairs(state: agent_state) -> Literal["manager", "generate_repairs"]
                         len(results), cycle_count + 1, MAX_CYCLES)
             return "generate_repairs"
 
-def is_the_repair_query_correct(query: str, state: agent_state) -> bool:
+def is_the_repair_query_correct(query: str, state: AgentState) -> bool:
     """Run EXPLAIN on the query to validate syntax before applying it."""
     explain_query = "EXPLAIN " + query
     db = GraphDB(state["login_url"], state["login_user"], state["login_password"])

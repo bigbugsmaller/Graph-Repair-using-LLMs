@@ -1,2 +1,0 @@
-MATCH (a:TypeA)-[:TO]->(b:TypeB)-[:TO]->(c:TypeC) RETURN a, b, c
-MATCH (a:TypeA)-[:TO]->(b:TypeB)<-[:TO]-(c:TypeC) RETURN a, b, c

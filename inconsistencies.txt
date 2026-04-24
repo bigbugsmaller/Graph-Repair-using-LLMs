@@ -1,0 +1,5 @@
+MATCH (n1:N4)-[r:R1]->(n2:N3) RETURN n1, r, n2
+MATCH (n1:N2)-[r:R1]->(n2) RETURN n1, r, n2
+MATCH (n1:N5)-[r1:R3]->(n2:N1), (n1)-[r2:R3]->(n3:N2) RETURN n1, r1, n2, r2, n3
+MATCH (n1:N3)-[r:R1]->(n2:N4) RETURN n1, r, n2
+MATCH (n:N5) WHERE n.x <= 57 RETURN n
