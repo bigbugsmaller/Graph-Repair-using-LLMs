@@ -6,13 +6,16 @@ from graph_repair.synthetic.injector import ViolationInjector
 
 def main():
     # 1. Initialize the Database
-    # This is where 'db' comes from!
-    db = Neo4jDatabase(config.NEO4J_URI, config.NEO4J_USERNAME, config.NEO4J_PASSWORD)
+    # Hardcoded credentials for quick testing
+    uri = "neo4j+ssc://8c1492ea.databases.neo4j.io"
+    username = "8c1492ea"
+    password = "BF0pmcCq3AL5vPF4l84DHvJhESPZOo-qVHs4xjoA6dU"
+    db = Neo4jDatabase(uri, username, password) 
     
     # 2. Generate the Rules
     # This is where 'ontology' comes from!
     ontology = OntologyGenerator()
-    ontology.generate_rules(num_allowed=20, num_disallowed=5)
+    ontology.generate_rules(num_allowed=250, num_disallowed=50)
     ontology.export_ontology("ontology_final.json")
     
     # 3. Generate Valid Graph
