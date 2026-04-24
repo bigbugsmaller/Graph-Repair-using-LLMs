@@ -2,7 +2,7 @@ import random
 import config
 from collections import defaultdict
 
-class Generator:
+class OverlapGenerator:
     def __init__(self, db, ontology):
         self.db = db
         self.ontology = ontology
@@ -46,7 +46,7 @@ class Generator:
                 op = constraint.get("operator", ">")
                 
                 if op == ">":
-                    x_val = random.randint(limit + 1, config.PROPERTY_MAX_VALUE)
+                    x_val = random.randint(limit + 1, config.PROP_MAX_VAL)
                 else: # op == "<"
                     x_val = random.randint(0, limit - 1)
                 
