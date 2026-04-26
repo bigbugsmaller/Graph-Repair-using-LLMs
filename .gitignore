@@ -9,3 +9,7 @@
 .ipynb_checkpoints/
 
 *.code-workspace
+inconsistencies.txt
+inconsistency.txt
+ontology_final.json
+ontology_overlap.json

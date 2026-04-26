@@ -69,7 +69,7 @@ LLM_SEED: int | None = int(_llm_seed_raw) if _llm_seed_raw else RANDOM_SEED
 # --- Ontology & Graph Generation Configuration ---
 NUM_NODE_TYPES = 50
 NUM_REL_TYPES = 15
-NUM_NODES = 80 # Adjust up to 10000 for scaling runs
+NUM_NODES = 10000 # Adjust up to 10000 for scaling runs 
 
 # Generation probabilities for constraints
 PROB_MAX_DEGREE = 0.2

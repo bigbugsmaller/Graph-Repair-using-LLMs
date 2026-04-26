@@ -66,7 +66,11 @@ class ViolationInjector:
                             WHERE NOT ((a)-[:{excl_rule['rel_type']}]->(:{excl_p1}) AND (a)-[:{excl_rule['rel_type']}]->(:{excl_p2}))
                             WITH a ORDER BY rand() LIMIT {num_to_inject}
                             MATCH (t1:{excl_p1}), (t2:{excl_p2})
-                            WITH a, t1, t2 ORDER BY rand() LIMIT 1
+                            WHERE t1 <> a AND t2 <> a AND t1 <> t2
+                            WITH a, t1, t2 ORDER BY rand()
+                            WITH a, collect({{t1:t1, t2:t2}})[0] AS pair
+                            WHERE pair IS NOT NULL
+                            WITH a, pair.t1 AS t1, pair.t2 AS t2
                             MERGE (a)-[:{excl_rule['rel_type']}]->(t1)
                             MERGE (a)-[:{excl_rule['rel_type']}]->(t2)
                             RETURN count(DISTINCT a) AS count
@@ -92,8 +96,10 @@ class ViolationInjector:
                                OR (a)-[:{dep_rule['rel_type']}]->(:{dep_rule['required']})
                             WITH a ORDER BY rand() LIMIT {num_to_inject}
                             MATCH (b:{dep_rule['trigger']}) WHERE b.id <> a.id
-                            WITH a, b ORDER BY rand() LIMIT 1
-                            MERGE (a)-[:{dep_rule['rel_type']}]->(b)
+                            WITH a, b ORDER BY rand()
+                            WITH a, collect(b)[0] AS trigger_node
+                            WHERE trigger_node IS NOT NULL
+                            MERGE (a)-[:{dep_rule['rel_type']}]->(trigger_node)
                             RETURN collect(a.id) AS ids
                         """)
                         if merge_result and merge_result[0]["ids"]:

@@ -1,12 +1,12 @@
 import config
-from database import Neo4jDatabase
+from graph_repair.db import GraphDB
 from graph_repair.synthetic.overlap_rules_maker import OverlapOntologyGenerator
 from graph_repair.synthetic.overlap_gen_valid import OverlapGenerator
 from graph_repair.synthetic.overlap_injector import OverlapViolationInjector
 
 def run_pipeline():
     # Initialize DB
-    db = Neo4jDatabase(config.NEO4J_URI, config.NEO4J_USERNAME, config.NEO4J_PASSWORD)
+    db = GraphDB(config.NEO4J_URI, config.NEO4J_USERNAME, config.NEO4J_PASSWORD)
     
     # 1. Generate Rules (Ontology)
     print("Step 1: Generating Overlapping Ontology...")

@@ -9,7 +9,7 @@ from neo4j import GraphDatabase
 class GraphDB:
     """Small Neo4j wrapper used across repair and experiment flows."""
 
-    def __init__(self, url: str, user: str, password: str, database: str = "neo4j"):
+    def __init__(self, url: str, user: str, password: str, database: str = None):
         if not url or not user or not password:
             raise ValueError(
                 "Neo4j connection info missing. Set NEO4J_URI, NEO4J_USERNAME, and NEO4J_PASSWORD."
@@ -43,7 +43,11 @@ class GraphDB:
         if params is None:
             params = {}
 
-        with self.driver.session(database=self.database) as session:
+        session_kwargs = {}
+        if self.database:
+            session_kwargs["database"] = self.database
+
+        with self.driver.session(**session_kwargs) as session:
             result = session.run(query, params)
             return [record.data() for record in result]
 
