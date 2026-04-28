@@ -1,12 +1,20 @@
 import config
+import os
+from dotenv import load_dotenv
 from graph_repair.db import GraphDB
 from graph_repair.synthetic.overlap_rules_maker import OverlapOntologyGenerator
 from graph_repair.synthetic.overlap_gen_valid import OverlapGenerator
 from graph_repair.synthetic.overlap_injector import OverlapViolationInjector
 
 def run_pipeline():
+    # Loads variables from .env
+    load_dotenv()
+    
     # Initialize DB
-    db = GraphDB(config.NEO4J_URI, config.NEO4J_USERNAME, config.NEO4J_PASSWORD)
+    uri = os.getenv("NEO4J_URI")
+    username = os.getenv("NEO4J_USERNAME")
+    password = os.getenv("NEO4J_PASSWORD")
+    db = GraphDB(uri, username, password)
     
     # 1. Generate Rules (Ontology)
     print("Step 1: Generating Overlapping Ontology...")

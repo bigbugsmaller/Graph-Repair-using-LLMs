@@ -1,16 +1,20 @@
 import config
+import os
+from dotenv import load_dotenv
 from graph_repair.db import GraphDB
 from graph_repair.synthetic.rules_maker import OntologyGenerator
 from graph_repair.synthetic.gen_valid import Generator
 from graph_repair.synthetic.injector import ViolationInjector
 
 def main():
+    # Loads variables from .env
+    load_dotenv() 
+    
     # 1. Initialize the Database
-    # Hardcoded credentials for quick testing
-    uri = "neo4j+ssc://8c1492ea.databases.neo4j.io"
-    username = "8c1492ea"
-    password = "BF0pmcCq3AL5vPF4l84DHvJhESPZOo-qVHs4xjoA6dU"
-    db = GraphDB(uri, username, password) 
+    uri = os.getenv("NEO4J_URI")
+    username = os.getenv("NEO4J_USERNAME")
+    password = os.getenv("NEO4J_PASSWORD")
+    db = GraphDB(uri, username, password)
     
     # 2. Generate the Rules
     # This is where 'ontology' comes from!

@@ -6,3 +6,4 @@ openai
 ipython
 pyyaml
 faker
+python-dotenv
