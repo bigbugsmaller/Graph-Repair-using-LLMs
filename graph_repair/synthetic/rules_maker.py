@@ -1,0 +1,180 @@
+import random
+import json
+import config
+
+class OntologyGenerator:
+    """
+    This class creates the basic "rulebook" for our standard graph. 
+    It decides which nodes can connect to each other, how many connections they can have, 
+    and sets simple property limits.
+    """
+    def __init__(self):
+        self.num_node_types = config.NUM_NODE_TYPES
+        self.num_rel_types = config.NUM_REL_TYPES
+        
+        self.allowed_patterns = set()
+        self.disallowed_patterns = set()
+        self.neighborhood_rules = {} 
+        self.property_constraint = None
+
+    def generate_rules(self, num_allowed=20, num_disallowed=5):
+        """
+        Creates a random set of rules for the standard graph.
+        
+        Args:
+            num_allowed (int): How many connection patterns are allowed.
+            num_disallowed (int): How many connection patterns are strictly forbidden.
+        """
+        all_node_types = [f"N{i}" for i in range(1, self.num_node_types + 1)]
+        all_rel_types = [f"R{i}" for i in range(1, self.num_rel_types + 1)]
+        
+        universe = set()
+        for src in all_node_types:
+            for tgt in all_node_types:
+                for rel in all_rel_types:
+                    universe.add((src, rel, tgt))
+        
+        self.allowed_patterns = set(random.sample(list(universe), num_allowed))
+        remaining = universe - self.allowed_patterns
+        self.disallowed_patterns = set(random.sample(list(remaining), num_disallowed))
+        
+        # single node property check with random threshold
+        active_types = set()
+        for (s, r, t) in self.allowed_patterns:
+            active_types.add(s)
+            active_types.add(t)
+        
+        if active_types:
+            target_type = random.choice(list(active_types))
+            threshold_val = random.randint(*config.PROPERTY_THRESHOLD_RANGE)
+            self.property_constraint = {
+                "node_type": target_type,
+                "threshold": threshold_val,
+                "operator": random.choice([">", "<"])
+            }
+
+        # Neighborhood Constraints
+        for n_type in all_node_types:
+            rand_val = random.random()
+            
+            # Max Degree
+            if rand_val < config.PROB_MAX_DEGREE:
+                self.neighborhood_rules[n_type] = {
+                    "type": "max_degree",
+                    "limit": random.randint(*config.MAX_DEGREE_LIMIT_RANGE),
+                    "rel_type": random.choice(all_rel_types)
+                }
+            
+            # Exclusive
+            elif rand_val < config.PROB_EXCLUSIVE:
+                others = [t for t in all_node_types if t != n_type]
+                if len(others) >= 2:
+                    self.neighborhood_rules[n_type] = {
+                        "type": "exclusive",
+                        "conflict_pair": random.sample(others, 2), 
+                        "rel_type": random.choice(all_rel_types)
+                    }
+
+            # Dependency
+            elif rand_val < config.PROB_DEPENDENCY:
+                others = [t for t in all_node_types if t != n_type]  
+                if len(others) >= 2:
+                    pair = random.sample(others, 2)
+                    self.neighborhood_rules[n_type] = {
+                        "type": "dependency",
+                        "trigger": pair[0],   
+                        "required": pair[1],  
+                        "rel_type": random.choice(all_rel_types)
+                    }
+            
+            # Comparison Rule
+            else:
+                others = [t for t in all_node_types if t != n_type]
+                if others:
+                    target = random.choice(others)
+                    self.neighborhood_rules[n_type] = {
+                        "type": "comparison",
+                        "target": target,
+                        "rel_type": random.choice(all_rel_types) 
+                    }
+
+        # Guarantee Blocks
+        self._ensure_rule("comparison", all_node_types, all_rel_types)
+        self._ensure_rule("dependency", all_node_types, all_rel_types)
+        self._ensure_rule("max_degree", all_node_types, all_rel_types)
+        self._ensure_rule("exclusive", all_node_types, all_rel_types)
+
+    def _ensure_rule(self, rule_type, all_node_types, all_rel_types):
+        """
+        Makes sure that every type of rule (like max degree or dependency) is applied 
+        to at least one node type. If it forgot one, it forces it to happen here.
+        
+        Args:
+            rule_type (str): The kind of rule to check for.
+            all_node_types (list): List of all node types.
+            all_rel_types (list): List of all relationship types.
+        """
+        if not any(v["type"] == rule_type for v in self.neighborhood_rules.values()):
+            unassigned = [t for t in all_node_types if t not in self.neighborhood_rules]
+            fallback_type = random.choice(unassigned if unassigned else all_node_types)
+            others = [t for t in all_node_types if t != fallback_type]
+            
+            if rule_type == "comparison":
+                self.neighborhood_rules[fallback_type] = {
+                    "type": "comparison",
+                    "target": random.choice(others),
+                    "rel_type": random.choice(all_rel_types)
+                }
+            elif rule_type == "dependency":
+                pair = random.sample(others, 2)
+                self.neighborhood_rules[fallback_type] = {
+                    "type": "dependency",
+                    "trigger": pair[0],
+                    "required": pair[1],
+                    "rel_type": random.choice(all_rel_types)
+                }
+            elif rule_type == "max_degree":
+                self.neighborhood_rules[fallback_type] = {
+                    "type": "max_degree",
+                    "limit": random.randint(*config.MAX_DEGREE_LIMIT_RANGE),
+                    "rel_type": random.choice(all_rel_types)
+                }
+            elif rule_type == "exclusive":
+                self.neighborhood_rules[fallback_type] = {
+                    "type": "exclusive",
+                    "conflict_pair": random.sample(others, 2),
+                    "rel_type": random.choice(all_rel_types)
+                }
+            print(f"  [Guaranteed] Assigned {rule_type} rule to {fallback_type}")
+
+    def export_ontology(self, filename="ontology_final.json"):
+        """
+        Saves all the generated rules to a JSON file so other scripts can read them.
+        
+        Args:
+            filename (str): The name of the file to save to.
+        """
+        data = {
+            "triples": {
+                "allowed": [list(p) for p in self.allowed_patterns],
+                "disallowed": [list(p) for p in self.disallowed_patterns]
+            },
+            "neighborhood_constraints": self.neighborhood_rules,
+            "property_constraint": self.property_constraint
+        }
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=2)
+
+    def load_ontology(self, filename="ontology_final.json"):
+        """
+        Loads the rules from an existing JSON file back into this class.
+        
+        Args:
+            filename (str): The name of the file to load from.
+        """
+        with open(filename, "r") as f:
+            data = json.load(f)
+        self.allowed_patterns = set(tuple(p) for p in data["triples"]["allowed"])
+        self.disallowed_patterns = set(tuple(p) for p in data["triples"]["disallowed"])
+        self.neighborhood_rules = data["neighborhood_constraints"]
+        self.property_constraint = data.get("property_constraint", None)
