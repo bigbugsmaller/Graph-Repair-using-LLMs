@@ -1,5 +1,9 @@
-import config
+import sys
 import os
+# Add the project root to sys.path so it can find config.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+import config
 from dotenv import load_dotenv
 from graph_repair.db import GraphDB
 from graph_repair.synthetic.rules_maker import OntologyGenerator
@@ -7,6 +11,15 @@ from graph_repair.synthetic.gen_valid import Generator
 from graph_repair.synthetic.injector import ViolationInjector
 
 def main():
+    """
+    This is the main script that runs the standard graph simulation.
+    
+    It does three things in order:
+        1. Creates the simple rulebook (Ontology).
+        2. Builds a valid graph that follows those rules perfectly.
+        3. Purposefully breaks the graph at random places to create a puzzle 
+           for the AI agent to solve.
+    """
     # Loads variables from .env
     load_dotenv() 
     

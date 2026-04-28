@@ -2,11 +2,22 @@ import random
 import config
 
 class ViolationInjector:
+    """
+    This class purposefully breaks the rules of the standard graph. It picks random nodes
+    and introduces just one error at a time (like giving a node too many connections).
+    This tests the AI agent's ability to find and fix isolated mistakes.
+    """
     def __init__(self, db, ontology):
         self.db = db
         self.ontology = ontology
 
     def inject_violations(self):
+        """
+        Runs the breaking process. It goes through different types of rules (like max degree
+        or exclusive rules) and randomly breaks a few of them across the graph. 
+        It saves all the Cypher queries needed to find these errors into 'inconsistencies.txt' 
+        so we can check if the AI agent fixed them later.
+        """
         print("Injecting violations...")
 
         violation_types = ["triple", "cardinality", "exclusive", "dependency", "comparison", "property_x"]

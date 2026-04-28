@@ -3,11 +3,24 @@ import config
 from collections import defaultdict
 
 class Generator:
+    """
+    This class builds the actual standard graph in Neo4j using the rules created by the 
+    OntologyGenerator. It makes sure every node and edge it creates follows the rules 
+    perfectly before we start breaking them.
+    """
     def __init__(self, db, ontology):
         self.db = db
         self.ontology = ontology
 
     def generate_valid_graph(self, num_nodes=None):
+        """
+        Creates all the nodes and edges in the database. 
+        It adds properties and connections while strictly following the allowed rules,
+        making sure things like 'Max Degree' or 'Dependency' rules aren't broken.
+        
+        Args:
+            num_nodes (int, optional): How many nodes to create. Defaults to the number in config.py.
+        """
         if num_nodes is None:
             num_nodes = config.NUM_NODES
             

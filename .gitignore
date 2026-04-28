@@ -10,6 +10,7 @@
 
 *.code-workspace
 inconsistencies.txt
+inconsistencies_overlap.txt
 inconsistency.txt
 ontology_final.json
 ontology_overlap.json

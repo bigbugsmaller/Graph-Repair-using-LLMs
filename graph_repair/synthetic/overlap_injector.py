@@ -2,11 +2,23 @@ import random
 import config
 
 class OverlapViolationInjector:
+    """
+    This class purposefully breaks the rules of the graph. It targets specific "Hub" nodes 
+    and creates multiple errors on them at the exact same time. This makes it a very difficult 
+    puzzle for the AI agent to solve, because fixing one error might break another.
+    """
     def __init__(self, db, ontology):
         self.db = db
         self.ontology = ontology
 
     def _score_hub_types(self):
+        """
+        Figures out which node types have the most rules attached to them. 
+        We score them so we can pick the most complicated nodes (the "Hubs") to target for breaking.
+        
+        Returns:
+            dict: A dictionary showing each node type and its complexity score.
+        """
         all_node_types = [f"N{i}" for i in range(1, config.NUM_NODE_TYPES + 1)]
         scores = {nt: 0 for nt in all_node_types}
 
@@ -32,6 +44,14 @@ class OverlapViolationInjector:
         return scores
 
     def inject_overlapping_violations(self):
+        """
+        Runs the main breaking process (the "Corruption Storm").
+        1. Finds the most complicated "Hub" nodes.
+        2. Breaks their rules by adding bad connections, changing properties to invalid values, 
+           and messing up their dependencies.
+        3. Saves all the Cypher queries needed to find these errors into 'inconsistencies_overlap.txt' 
+           so we can check if the AI agent actually fixed them later.
+        """
         print(f"\nInjecting {config.NUM_HUBS} hub-anchored overlapping violation sets...")
         
         scores = self._score_hub_types()
@@ -67,7 +87,7 @@ class OverlapViolationInjector:
                     """, params={"ids": relevant_hubs})
                     for h_id in relevant_hubs:
                         queries.append(f"MATCH (h:{target_type} {{id: '{h_id}'}}) WHERE h.x <= {thr} RETURN h")
-                        print(f"  [V1 ✓] property_x (op:>) → hub {h_id}")
+                        print(f"  [V1 OK] property_x (op:>) -> hub {h_id}")
                 else:
                     self.db.run_query(f"""
                         UNWIND $ids AS h_id
@@ -76,7 +96,7 @@ class OverlapViolationInjector:
                     """, params={"ids": relevant_hubs})
                     for h_id in relevant_hubs:
                         queries.append(f"MATCH (h:{target_type} {{id: '{h_id}'}}) WHERE h.x >= {thr} RETURN h")
-                        print(f"  [V1 ✓] property_x (op:<) → hub {h_id}")
+                        print(f"  [V1 OK] property_x (op:<) -> hub {h_id}")
 
         # Step 3: Batch Exclusive Violations
         # Group hubs by their specific exclusive rule parameters
@@ -93,7 +113,7 @@ class OverlapViolationInjector:
                     MERGE (h)-[:{hub_rule['rel_type']}]->(t2)
                 """)
                 queries.append(f"MATCH (h:{hub_type} {{id: '{hub_id}'}})-[r1:{hub_rule['rel_type']}]->(n2:{p1}), (h)-[r2:{hub_rule['rel_type']}]->(n3:{p2}) RETURN h, r1, n2, r2, n3")
-                print(f"  [V2 ✓] exclusive    → hub {hub_id}")
+                print(f"  [V2 OK] exclusive    -> hub {hub_id}")
 
         # Step 4: Batch Triple Violations
         for hub_type, hub_id in hub_data:
@@ -106,7 +126,7 @@ class OverlapViolationInjector:
                     MERGE (h)-[:{rel}]->(tgt)
                 """)
                 queries.append(f"MATCH (h:{hub_type} {{id: '{hub_id}'}})-[r:{rel}]->(tgt:{t}) RETURN h, r, tgt")
-                print(f"  [V3 ✓] triple       → hub {hub_id}")
+                print(f"  [V3 OK] triple       -> hub {hub_id}")
 
         # Step 5: Batch Comparison Violations
         for hub_type, hub_id in hub_data:
@@ -132,7 +152,7 @@ class OverlapViolationInjector:
                         SET src.prop = h.prop - {config.COMPARISON_VIOLATION_OFFSET}
                     """)
                     queries.append(f"MATCH (src:{comp_src_type})-[r {{A1: 'active'}}]->(h:{hub_type} {{id: '{hub_id}'}}) WHERE src.prop <= h.prop RETURN src, r, h")
-                    print(f"  [V4 ✓] comparison    → hub {hub_id} (target)")
+                    print(f"  [V4 OK] comparison    -> hub {hub_id} (target)")
                 else: # H is source
                     self.db.run_query(f"""
                         MATCH (h:{hub_type} {{id: '{hub_id}'}}), (tgt:{comp_rule['target']})
@@ -142,7 +162,7 @@ class OverlapViolationInjector:
                         SET h.prop = tgt.prop - {config.COMPARISON_VIOLATION_OFFSET}
                     """)
                     queries.append(f"MATCH (h:{hub_type} {{id: '{hub_id}'}})-[r {{A1: 'active'}}]->(tgt:{comp_rule['target']}) WHERE h.prop <= tgt.prop RETURN h, r, tgt")
-                    print(f"  [V4 ✓] comparison    → hub {hub_id} (source)")
+                    print(f"  [V4 OK] comparison    -> hub {hub_id} (source)")
 
         # Step 6: Batch Dependency Violations
         for hub_type, hub_id in hub_data:
@@ -164,7 +184,7 @@ class OverlapViolationInjector:
                         self.db.run_query(f"MATCH (dep:{dep_src_type} {{id: '{did}'}}), (h:{hub_type} {{id: '{hub_id}'}}) MERGE (dep)-[:{dep_rule['rel_type']}]->(h)")
                         self.db.run_query(f"MATCH (dep:{dep_src_type} {{id: '{did}'}})-[r]->(req:{dep_rule['required']}) DELETE r")
                         queries.append(f"MATCH (dep:{dep_src_type})-[r:{dep_rule['rel_type']}]->(h:{hub_type} {{id: '{hub_id}'}}) WHERE NOT (dep)-[:{dep_rule['rel_type']}]->(:{dep_rule['required']}) RETURN dep, r, h")
-                        print(f"  [V5 ✓] dependency   → hub {hub_id} (trigger)")
+                        print(f"  [V5 OK] dependency   -> hub {hub_id} (trigger)")
                 else: # H is source
                     trig_rec = self.db.run_query(f"MATCH (h:{hub_type} {{id: '{hub_id}'}}), (trig:{dep_rule['trigger']}) WHERE h.id <> trig.id AND NOT (h)-[:{dep_rule['rel_type']}]->(trig) RETURN trig.id AS tid LIMIT 1")
                     if trig_rec:
@@ -172,7 +192,7 @@ class OverlapViolationInjector:
                         self.db.run_query(f"MATCH (h:{hub_type} {{id: '{hub_id}'}}), (trig:{dep_rule['trigger']} {{id: '{tid}'}}) MERGE (h)-[:{dep_rule['rel_type']}]->(trig)")
                         self.db.run_query(f"MATCH (h:{hub_type} {{id: '{hub_id}'}})-[r]->(req:{dep_rule['required']}) DELETE r")
                         queries.append(f"MATCH (h:{hub_type} {{id: '{hub_id}'}})-[r:{dep_rule['rel_type']}]->(trig:{dep_rule['trigger']}) WHERE NOT (h)-[:{dep_rule['rel_type']}]->(:{dep_rule['required']}) RETURN h, r, trig")
-                        print(f"  [V5 ✓] dependency   → hub {hub_id} (source)")
+                        print(f"  [V5 OK] dependency   -> hub {hub_id} (source)")
 
         # Step 7: Batch Cardinality Violations
         for hub_type, hub_id in hub_data:
@@ -186,7 +206,7 @@ class OverlapViolationInjector:
                     MERGE (h)-[:{hub_rule['rel_type']}]->(b)
                 """)
                 queries.append(f"MATCH (h:{hub_type} {{id: '{hub_id}'}})-[r:{hub_rule['rel_type']}]->(n) WITH h, count(r) AS deg WHERE deg > {hub_rule['limit']} RETURN h")
-                print(f"  [V6 ✓] cardinality  → hub {hub_id}")
+                print(f"  [V6 OK] cardinality  -> hub {hub_id}")
             else:
                 card_node_data = next(((nt, r) for nt, r in self.ontology.neighborhood_rules.items() if r["type"] == "max_degree"), (None, None))
                 if card_node_data:
@@ -203,10 +223,36 @@ class OverlapViolationInjector:
                             MERGE (c)-[:{c_rule['rel_type']}]->(b)
                         """)
                         queries.append(f"MATCH (c:{c_type} {{id: '{cid}'}})-[r:{c_rule['rel_type']}]->(n) WITH c, count(r) AS deg WHERE deg > {c_rule['limit']} MATCH (c)-[:{c_rule['rel_type']}]->(h:{hub_type} {{id: '{hub_id}'}}) RETURN c, deg, h")
-                        print(f"  [V6 ✓] cardinality  → hub {hub_id} (external nodes)")
+                        print(f"  [V6 OK] cardinality  -> hub {hub_id} (external nodes)")
 
         with open("inconsistencies_overlap.txt", "w") as f:
             for q in queries:
                 f.write(q + "\n")
         print("\nFinished injecting overlapping violations. Detection queries saved to inconsistencies_overlap.txt")
+        
+        # Calculate and report density (edges connected to hubs / total edges in graph)
+        hub_ids = [hd[1] for hd in hub_data]
+        density = self.calculate_density(hub_ids)
+        #print(f"Final Overlap Density: {density}% (Hubs are involved in {density}% of all graph connections)")
+
+    def calculate_density(self, hub_ids):
+        """
+        Calculates how much of the graph's total connectivity is concentrated on the Hubs.
+        
+        Returns:
+            float: The percentage of total edges that are connected to Hub nodes.
+        """
+        query = """
+        MATCH ()-[r]->()
+        WITH count(r) AS total_edges
+        MATCH (h)-[r]-()
+        WHERE h.id IN $hub_ids
+        WITH total_edges, count(DISTINCT r) AS hub_edges
+        RETURN CASE 
+            WHEN total_edges = 0 THEN 0 
+            ELSE round(toFloat(hub_edges) / total_edges * 100, 2) 
+        END AS density
+        """
+        result = self.db.run_query(query, params={"hub_ids": hub_ids})
+        return result[0]["density"] if result else 0.0
 
