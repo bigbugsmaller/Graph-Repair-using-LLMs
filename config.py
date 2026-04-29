@@ -99,4 +99,4 @@ COMPARISON_INCREMENT = 5 #The "safety buffer" used to make a node valid if it's 
 COMPARISON_VIOLATION_OFFSET = 20 #he amount subtracted to intentionally break the rule during violation injection.
 
 # Overlap specific
-NUM_HUBS = 50
+NUM_HUBS = 55
