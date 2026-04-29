@@ -12,7 +12,7 @@ This project implements a LangGraph-based agent that interacts with a Neo4j grap
 
 ## Installation
 
-1. Clone the repository.
+1. Clone the repo
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
